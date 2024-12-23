@@ -58,19 +58,19 @@ def query_capacity(servers)
           puts "Failed to query capacity for #{host}:#{port} - #{e.message}"
         end
 
-        sleep(5) # 5 saniyelik sorgu aralığı
+        sleep(5) 
       end
     end
   end
 end
 
-# Ana işlem
+
 config_file = 'dist_subs.conf'
 servers = [['localhost', 5001], ['localhost', 5002], ['localhost', 5003]]
 
 config = read_config(config_file)
 active_servers = send_start_command(servers, config)
 
-# Kapasite sorgusu başlat
+
 query_capacity(active_servers)
 

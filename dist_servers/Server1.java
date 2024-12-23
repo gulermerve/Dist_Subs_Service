@@ -29,6 +29,7 @@ public class Server1 {
             Socket clientSocket = serverSocket.accept();
             System.out.println("Bağlantı kabul edildi: " + clientSocket.getRemoteSocketAddress());
 
+
             new Thread(() -> handleClient(clientSocket, plotterOut)).start();
         }
     }

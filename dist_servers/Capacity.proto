@@ -1,0 +1,45 @@
+public class Capacity {
+    private String demand;
+    private String serverStatus;
+    private long timestamp;
+
+    public Capacity(String demand, String serverStatus, long timestamp) {
+        this.demand = demand;
+        this.serverStatus = serverStatus;
+        this.timestamp = timestamp;
+    }
+
+    
+    public String getDemand() {
+        return demand;
+    }
+
+    public void setDemand(String demand) {
+        this.demand = demand;
+    }
+
+    public String getServerStatus() {
+        return serverStatus;
+    }
+
+    public void setServerStatus(String serverStatus) {
+        this.serverStatus = serverStatus;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    @Override
+    public String toString() {
+        return "Capacity{" +
+                "demand='" + demand + '\'' +
+                ", serverStatus='" + serverStatus + '\'' +
+                ", timestamp=" + timestamp +
+                '}';
+    }
+}

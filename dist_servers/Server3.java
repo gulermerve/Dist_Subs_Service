@@ -6,9 +6,11 @@ public class Server3 {
     public static void main(String[] args) throws IOException {
         int port = 5003;
 
+       
         ServerSocket serverSocket = new ServerSocket(port);
         System.out.println("Server3 running on port " + port);
 
+        
         try (Socket connectionToServer1 = new Socket("localhost", 5001);
              Socket connectionToServer2 = new Socket("localhost", 5002)) {
             System.out.println("Connected to Server1 and Server2");
@@ -20,23 +22,28 @@ public class Server3 {
             Socket clientSocket = serverSocket.accept();
             System.out.println("Accepted connection from: " + clientSocket.getRemoteSocketAddress());
 
-        
             try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                  PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
 
                 String command = in.readLine();
                 System.out.println("Received command: " + command);
 
-                
-                Message responseMessage;
-                if ("STRT 1000".equals(command)) { 
-                    responseMessage = new Message("STRT", "YEP");
+                if ("STRT 1000".equals(command)) {
+                 
+                    Message responseMessage = new Message("STRT", "YEP");
+                    out.println(responseMessage);
+                    System.out.println("Sent response: " + responseMessage);
+                } else if ("CPCTY".equals(command)) {
+                   
+                    long currentTimestamp = System.currentTimeMillis() / 1000;
+                    Capacity capacityResponse = new Capacity("CPCTY", "1000", currentTimestamp);
+                    out.println(capacityResponse);
+                    System.out.println("Sent capacity response: " + capacityResponse);
                 } else {
-                    responseMessage = new Message("STRT", "NOP");
+                    Message responseMessage = new Message(command, "NOP");
+                    out.println(responseMessage);
+                    System.out.println("Sent response: " + responseMessage);
                 }
-
-                out.println(responseMessage);
-                System.out.println("Sent response: " + responseMessage);
             }
         }
     }

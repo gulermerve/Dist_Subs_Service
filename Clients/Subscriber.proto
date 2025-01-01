@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+message Subscriber {
+    int32 id = 1;                // Abone ID
+    string name_surname = 2;     // Abone adı ve soyadı
+    int64 start_date = 3;        // Başlangıç tarihi (milisaniye cinsinden)
+    int64 last_accessed = 4;     // Son erişim tarihi (milisaniye cinsinden)
+    string interests = 5;        // İlgi alanları (virgülle ayrılmış)
+    bool is_online = 6;          // Çevrimiçi durumu
+}

@@ -65,9 +65,9 @@ Hata sayılarını plotter'a gönderdik ve grafikle görselleştirdik.
 
 
 Ekip üyeleri:
-22060342, Melek KÖŞELİ
-22060401, Emine Merve GÜLER
-Numara, Leila SARAFNAZ
+- 22060342, Melek KÖŞELİ
+- 22060401, Emine Merve GÜLER
+- 22060781, Leila SARAFARAZ
 
 
 Sunum Videosu Linki:

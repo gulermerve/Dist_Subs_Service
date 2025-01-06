@@ -1,82 +1,50 @@
+import com.example.protobuf.Subscription;
 import java.io.*;
 import java.net.*;
-import java.util.*;
-import java.util.concurrent.*;
 
 public class Server3 {
-    private static final Map<Integer, Subscriber> subscribers = new ConcurrentHashMap<>();
-    private static final int PORT = 5003;
-    private static final int PLOTTER_PORT = 6000;
+    private static final int SERVER_PORT = 5003;
+    private static final int MAX_ERRORS_CONNECTION = 1;  // Bağlantı hatası toleransı
+    private static final int MAX_ERRORS_PROTOBUF = 2;    // Protobuf hatası toleransı
 
-    public static void main(String[] args) throws IOException {
-        ServerSocket serverSocket = new ServerSocket(PORT);
-        System.out.println("Server3 " + PORT + " portunda çalışıyor.");
+    public static void main(String[] args) {
+        int errorCountConnection = 0;  // Bağlantı hatası sayacı
+        int errorCountProtoBuf = 0;    // Protobuf hatası sayacı
+        try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT)) {
+            System.out.println("Server3 başlatıldı...");
+            
+            while (true) {
+                try {
+                    Socket socket = serverSocket.accept();
+                    try (InputStream in = socket.getInputStream();
+                         OutputStream out = socket.getOutputStream()) {
 
-        Socket plotterSocket = new Socket("localhost", PLOTTER_PORT);
-        PrintWriter plotterOut = new PrintWriter(plotterSocket.getOutputStream(), true);
+                        // Protobuf mesajını okuma
+                        Subscription subscription = Subscription.parseFrom(in);
+                        System.out.println("Server3 - Alınan abone verisi: " + subscription);
 
-        List<Socket> otherServers = new ArrayList<>();
-        try {
-            otherServers.add(new Socket("localhost", 5001));
-            otherServers.add(new Socket("localhost", 5002));
-        } catch (IOException e) {
-            System.err.println("Diğer sunuculara bağlanırken hata oluştu: " + e.getMessage());
-        }
-
-        while (true) {
-            Socket clientSocket = serverSocket.accept();
-            System.out.println("Bağlantı kabul edildi: " + clientSocket.getRemoteSocketAddress());
-
-            new Thread(() -> handleClient(clientSocket, plotterOut)).start();
-        }
-    }
-
-    private static void handleClient(Socket clientSocket, PrintWriter plotterOut) {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
-
-            String command = in.readLine();
-            System.out.println("Gelen komut: " + command);
-
-            if (command.startsWith("STRT")) {
-                out.println("YEP");
-                System.out.println("Başlatma komutuna yanıt verildi.");
-            } else if (command.startsWith("SUBS")) {
-                String[] parts = command.split(",");
-                int id = Integer.parseInt(parts[1].split(":")[1].trim());
-                String nameSurname = parts[2].split(":")[1].trim().replace("\"", "");
-                long startDate = Long.parseLong(parts[3].split(":")[1].trim());
-                long lastAccessed = Long.parseLong(parts[4].split(":")[1].trim());
-                List<String> interests = Arrays.asList(parts[5].split(":")[1].trim().replace("[", "").replace("]", "").split(","));
-                boolean isOnline = Boolean.parseBoolean(parts[6].split(":")[1].trim());
-
-                Subscriber newSubscriber = new Subscriber(id, nameSurname, startDate, lastAccessed, interests, isOnline);
-                subscribers.put(id, newSubscriber);
-                out.println("Subscriber added: " + newSubscriber);
-                System.out.println("Yeni abone eklendi: " + newSubscriber);
-            } else if (command.startsWith("DEL")) {
-                String[] parts = command.split(",");
-                int id = Integer.parseInt(parts[1].split(":")[1].trim());
-
-                if (subscribers.containsKey(id)) {
-                    Subscriber removedSubscriber = subscribers.remove(id);
-                    out.println("Subscriber deleted: " + removedSubscriber);
-                    System.out.println("Abone silindi: " + removedSubscriber);
-                } else {
-                    out.println("No subscriber found with ID: " + id);
-                    System.out.println("ID ile abone bulunamadı: " + id);
+                        // Yanıt gönderme
+                        String response = "Server3 - Abone verisi alındı!";
+                        out.write(response.getBytes());
+                    }
+                } catch (IOException e) {
+                    errorCountConnection++;
+                    System.err.println("Bağlantı hatası: " + e.getMessage());
+                    if (errorCountConnection >= MAX_ERRORS_CONNECTION) {
+                        System.err.println("Maksimum bağlantı hatası sayısına ulaşıldı. Server3 kapatılıyor.");
+                        break;  // Bağlantı hatası toleransı aşıldığında sunucu kapanır
+                    }
+                } catch (InvalidProtocolBufferException e) {
+                    errorCountProtoBuf++;
+                    System.err.println("Protobuf hatası: " + e.getMessage());
+                    if (errorCountProtoBuf >= MAX_ERRORS_PROTOBUF) {
+                        System.err.println("Maksimum Protobuf hatası sayısına ulaşıldı. Server3 kapatılıyor.");
+                        break;  // Protobuf hatası toleransı aşıldığında sunucu kapanır
+                    }
                 }
-            } else if (command.startsWith("CPCTY")) {
-                int capacity = subscribers.size();
-                plotterOut.println("CPCTY:" + capacity + ":3");
-                out.println("Capacity sent to plotter.");
-                System.out.println("Kapasite bilgisi gönderildi: " + capacity);
-            } else {
-                out.println("Unknown command");
-                System.out.println("Bilinmeyen komut alındı.");
             }
         } catch (IOException e) {
-            System.err.println("İstemciyle iletişim sırasında hata: " + e.getMessage());
+            System.err.println("Server3 hatası: " + e.getMessage());
         }
     }
 }

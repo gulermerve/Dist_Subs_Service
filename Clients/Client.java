@@ -1,6 +1,4 @@
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import com.example.protobuf.Subscription; // Protobuf sınıfının doğru yolu
 
 public class Client {
     private static final int SERVER1_PORT = 5001;
@@ -18,7 +16,6 @@ public class Client {
                     break;
                 }
 
-               
                 System.out.println("Hangi sunucuya bağlanmak istiyorsunuz? (1, 2, 3):");
                 int serverChoice = Integer.parseInt(scanner.nextLine().trim());
 
@@ -29,18 +26,11 @@ public class Client {
                     default -> throw new IllegalArgumentException("Geçersiz sunucu seçimi");
                 };
 
-                
                 try (Socket socket = new Socket("localhost", serverPort);
-                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                     OutputStream out = socket.getOutputStream();
+                     InputStream in = socket.getInputStream()) {
 
-                  
-                    out.println(command);
-
-                  
-                    String response = in.readLine();
-                    System.out.println("Sunucudan gelen yanıt: " + response);
-
+                    // Protobuf mesajını oluşturma
                     if (command.startsWith("SUBS")) {
                         System.out.println("Abone bilgileri gönderiliyor. Lütfen aşağıdaki bilgileri girin:");
                         System.out.print("ID: ");
@@ -61,14 +51,25 @@ public class Client {
                         System.out.print("Çevrimiçi mi? (true/false): ");
                         boolean isOnline = Boolean.parseBoolean(scanner.nextLine().trim());
 
-                        String subscriberData = String.format(
-                                "SUBS, ID:%d, NAME_SURNAME:\"%s\", START_DATE:%d, LAST_ACCESSED:%d, INTERESTS:[%s], IS_ONLINE:%b",
-                                id, nameSurname, startDate, lastAccessed, interests, isOnline);
+                        // Protobuf mesajını oluştur
+                        Subscription subscription = Subscription.newBuilder()
+                                .setId(id)
+                                .setNameSurname(nameSurname)
+                                .setStartDate(startDate)
+                                .setLastAccessed(lastAccessed)
+                                .setInterests(interests)
+                                .setIsOnline(isOnline)
+                                .build();
 
-                        out.println(subscriberData);
-                        response = in.readLine();
-                        System.out.println("Sunucudan gelen yanıt: " + response);
+                        // Protobuf mesajını gönderme
+                        subscription.writeTo(out);
                     }
+
+                    // Sunucudan gelen yanıtı okuma
+                    byte[] responseBytes = new byte[1024];
+                    int bytesRead = in.read(responseBytes);
+                    String response = new String(responseBytes, 0, bytesRead);
+                    System.out.println("Sunucudan gelen yanıt: " + response);
 
                 } catch (IOException e) {
                     System.err.println("Sunucuya bağlanırken bir hata oluştu: " + e.getMessage());
@@ -79,3 +80,4 @@ public class Client {
         }
     }
 }
+

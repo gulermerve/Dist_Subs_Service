@@ -1,76 +1,69 @@
+
+
 require 'socket'
 
-def read_config(file)
-  config_data = {}
-  File.foreach(file) do |line|
-    key, value = line.strip.split('=').map(&:strip)
-    config_data[key] = value
+# Sunucu bağlantı bilgileri
+SERVER1_PORT = 5001
+SERVER2_PORT = 5002
+SERVER3_PORT = 5003
+HOST = 'localhost'
+
+# Sunucuya bağlanıp yanıt almak için bir fonksiyon
+def connect_to_server(port)
+  begin
+    socket = TCPSocket.new(HOST, port)
+    socket.puts "SUBS, ID:123, NAME_SURNAME:\"John Doe\", START_DATE:1680000000000, LAST_ACCESSED:1685000000000, INTERESTS:[\"Music, Technology\"], IS_ONLINE:true"
+    response = socket.gets
+    socket.close
+    return response
+  rescue => e
+    return "Hata: #{e.message}"
   end
-  Configuration.new(config_data['fault_tolerance_level'].to_i, 'STRT')
 end
 
+# Hata sayacı
+error_count = {server1: 0, server2: 0, server3: 0}
+responses = {server1: [], server2: [], server3: []}
 
-def send_start_command(servers, config)
-  active_servers = []
-  
-  servers.each do |host, port|
-    begin
-      socket = TCPSocket.new(host, port)
-      message = "STRT #{config.fault_tolerance_level}"
-      socket.puts(message)
-      puts "Sent to #{host}:#{port} -> #{message}"
+# Sunuculardan yanıt al
+servers = {server1: SERVER1_PORT, server2: SERVER2_PORT, server3: SERVER3_PORT}
 
-     
-      response = socket.gets
-      puts "Response from #{host}:#{port} -> #{response}"
+servers.each do |server_name, port|
+  puts "Connecting to #{server_name} on port #{port}..."
+  response = connect_to_server(port)
+  responses[server_name] << response
+  if response.include?("Hata")
+    error_count[server_name] += 1
+  end
+end
 
-      
-      if response.include?("YEP")
-        active_servers << [host, port]
-      end
+# Yanıtları yazdır
+puts "Yanıtlar:"
+responses.each do |server_name, response_list|
+  puts "#{server_name}: #{response_list}"
+end
 
-      socket.close
-    rescue StandardError => e
-      puts "Failed to connect to #{host}:#{port} - #{e.message}"
+# Hata sayılarının yazdırılması
+puts "Hata sayıları:"
+error_count.each do |server_name, count|
+  puts "#{server_name}: #{count}"
+end
+
+# Sunucu hata toleransı seviyelerine göre aksiyon
+error_count.each do |server_name, count|
+  case server_name
+  when :server1
+    if count > 1
+      puts "#{server_name.capitalize} hata toleransı aşıldı! Kapatılıyor."
+    end
+  when :server2
+    if count > 2
+      puts "#{server_name.capitalize} hata toleransı aşıldı! Kapatılıyor."
+    end
+  when :server3
+    if count > 2
+      puts "#{server_name.capitalize} hata toleransı aşıldı! Kapatılıyor."
     end
   end
-
-  active_servers
 end
-
-
-def query_capacity(servers)
-  servers.each do |host, port|
-    Thread.new do
-      loop do
-        begin
-          socket = TCPSocket.new(host, port)
-          message = "CPCTY"
-          socket.puts(message)
-          puts "Sent capacity query to #{host}:#{port} -> #{message}"
-
-          
-          response = socket.gets
-          puts "Capacity response from #{host}:#{port} -> #{response}"
-
-          socket.close
-        rescue StandardError => e
-          puts "Failed to query capacity for #{host}:#{port} - #{e.message}"
-        end
-
-        sleep(5) 
-      end
-    end
-  end
-end
-
-
-config_file = 'dist_subs.conf'
-servers = [['localhost', 5001], ['localhost', 5002], ['localhost', 5003]]
-
-config = read_config(config_file)
-active_servers = send_start_command(servers, config)
-
-
-query_capacity(active_servers)
 
